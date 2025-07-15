@@ -14,6 +14,10 @@ import {
   Target,
   BarChart3,
   Calendar,
+  Users,
+  Check,
+  X,
+  Bell,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -22,6 +26,22 @@ interface DashboardStats {
   notes: number;
   flashcards: number;
   quizzes: number;
+}
+
+interface GroupInvitation {
+  id: number;
+  group: {
+    id: number;
+    name: string;
+    description: string;
+  };
+  invited_by: {
+    id: number;
+    username: string;
+    first_name: string;
+  };
+  created_at: string;
+  status: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -33,6 +53,8 @@ const Dashboard: React.FC = () => {
     quizzes: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [invitations, setInvitations] = useState<GroupInvitation[]>([]);
+  const [loadingInvitations, setLoadingInvitations] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -50,15 +72,65 @@ const Dashboard: React.FC = () => {
           quizzes: quizzesRes.data.length,
         });
       } catch (error) {
-        console.error('Failed to fetch dashboard stats:', error);
         toast.error('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
 
+    const fetchInvitations = async () => {
+      setLoadingInvitations(true);
+      try {
+        const response = await apiService.getPendingInvitations();
+        setInvitations(response.data);
+      } catch (error) {
+        console.error('Error fetching invitations:', error);
+      } finally {
+        setLoadingInvitations(false);
+      }
+    };
+
     fetchStats();
+    fetchInvitations();
   }, []);
+
+  const handleAcceptInvitation = async (invitationId: number) => {
+    try {
+      await apiService.acceptInvitation(invitationId);
+      toast.success('Invitation accepted!');
+      // Remove the accepted invitation from the list
+      setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Failed to accept invitation';
+      toast.error(message);
+    }
+  };
+
+  const handleDeclineInvitation = async (invitationId: number) => {
+    try {
+      await apiService.declineInvitation(invitationId);
+      toast.success('Invitation declined');
+      // Remove the declined invitation from the list
+      setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Failed to decline invitation';
+      toast.error(message);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} hours ago`;
+    } else {
+      return `${Math.floor(diffInHours / 24)} days ago`;
+    }
+  };
 
   const quickActions = [
     {
@@ -147,6 +219,59 @@ const Dashboard: React.FC = () => {
               Here's what's happening with your studies today.
             </p>
           </div>
+
+          {/* Invitation Notifications */}
+          {invitations.length > 0 && (
+            <div className="mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Bell size={16} className="text-blue-600" />
+                    <span className="text-sm font-medium text-gray-900">
+                      {invitations.length} pending invitation{invitations.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  {loadingInvitations && (
+                    <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                  )}
+                </div>
+                
+                <div className="space-y-3">
+                  {invitations.map((invitation) => (
+                    <div key={invitation.id} className="bg-white rounded border border-blue-100 p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Users size={14} className="text-blue-500 flex-shrink-0" />
+                            <h3 className="font-medium text-gray-900 text-sm truncate">{invitation.group.name}</h3>
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs text-gray-500">
+                            <span>by {invitation.invited_by.first_name || invitation.invited_by.username}</span>
+                            <span>•</span>
+                            <span>{formatTimeAgo(invitation.created_at)}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 ml-3 flex-shrink-0">
+                          <button
+                            onClick={() => handleAcceptInvitation(invitation.id)}
+                            className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition-colors"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleDeclineInvitation(invitation.id)}
+                            className="px-2 py-1 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 transition-colors"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
