@@ -39,7 +39,6 @@ const Navigation: React.FC = () => {
     { name: 'Flashcards', href: '/flashcards', icon: CreditCard },
     { name: 'Quizzes', href: '/quizzes', icon: Brain },
     { name: 'Groups', href: '/groups', icon: Users },
-    { name: 'Shared Links', href: '/shared-links', icon: LinkIcon },
     { name: 'Profile', href: '/profile', icon: User },
   ];
 

@@ -11,6 +11,9 @@ import Notebooks from './components/notebooks/Notebooks';
 import Notes from './components/notes/Notes';
 import Flashcards from './components/flashcards/Flashcards';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import Quizzes from './components/quizzes/Quizzes';
+import Groups from './components/groups/Groups';
+import GroupDetails from './components/groups/GroupDetails';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,11 +38,23 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const AppContent: React.FC = () => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <Router>
+        <div className="flex min-h-screen bg-gray-50">
+          <LoadingSpinner />
+        </div>
+      </Router>
+    );
+  }
+  
   return (
     <Router>
       <div className="flex min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="flex-1 lg:ml-64">
+        {isAuthenticated && <Navigation />}
+        <div className={`flex-1 ${isAuthenticated ? 'lg:ml-64' : ''}`}>
           <Routes>
             {/* Public Routes */}
             <Route
@@ -97,6 +112,30 @@ const AppContent: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <Flashcards />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quizzes"
+              element={
+                <ProtectedRoute>
+                  <Quizzes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/groups"
+              element={
+                <ProtectedRoute>
+                  <Groups />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/groups/:groupId"
+              element={
+                <ProtectedRoute>
+                  <GroupDetails />
                 </ProtectedRoute>
               }
             />

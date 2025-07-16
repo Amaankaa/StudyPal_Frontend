@@ -37,7 +37,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const response = await apiService.getProfile();
           setUser(response.data);
         } catch (error) {
-          console.error('Failed to get user profile:', error);
           await apiService.logout();
         }
       }

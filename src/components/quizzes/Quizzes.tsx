@@ -48,7 +48,7 @@ const QuizzesPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {notes.map((note) => (
+            {notes.filter(note => (quizCounts[note.id] || 0) > 0).map((note) => (
               <div
                 key={note.id}
                 className="card group hover:shadow-lg transition-shadow duration-200 cursor-pointer flex flex-col h-full"

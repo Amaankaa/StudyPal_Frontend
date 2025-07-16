@@ -212,7 +212,7 @@ const Notebooks: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center text-sm text-gray-500">
                       <FileText size={16} className="mr-1" />
-                      <span>0 notes</span>
+                      <span>{notebook.note_count} note{notebook.note_count === 1 ? '' : 's'}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <button

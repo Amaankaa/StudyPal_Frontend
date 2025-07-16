@@ -20,6 +20,7 @@ export interface Notebook {
   user: string;
   title: string;
   created_at: string;
+  note_count: number; // Add this line
 }
 
 export interface Note {

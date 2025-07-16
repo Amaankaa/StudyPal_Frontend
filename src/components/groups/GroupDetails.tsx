@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, Note, Quiz, Flashcard } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Users, 
@@ -18,7 +18,8 @@ import {
   Plus,
   FileText,
   BookOpen,
-  HelpCircle
+  HelpCircle,
+  Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -125,18 +126,14 @@ const GroupDetails: React.FC = () => {
   const [quizAnswers, setQuizAnswers] = useState<{ [key: number]: string }>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState<{ correct: number; total: number } | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fetchedRef = useRef(false);
-
-  // Scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [userNotes, setUserNotes] = useState<Note[]>([]);
+  const [userQuizzes, setUserQuizzes] = useState<Quiz[]>([]);
+  const [userFlashcards, setUserFlashcards] = useState<Flashcard[]>([]);
+  const [loadingUserResources, setLoadingUserResources] = useState(false);
 
   const fetchGroupDetails = useCallback(async () => {
     if (!groupId || fetchedRef.current) return;
@@ -165,6 +162,7 @@ const GroupDetails: React.FC = () => {
   const fetchResources = async () => {
     try {
       const response = await apiService.getGroupResources(parseInt(groupId!));
+      console.log('Group resources response:', response.data);
       setResources(response.data);
     } catch (error: any) {
       console.error('Error fetching resources:', error);
@@ -174,14 +172,15 @@ const GroupDetails: React.FC = () => {
 
   const shareResource = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shareForm.resource_id.trim() || !shareForm.title.trim() || sharing) return;
+    if (!shareForm.resource_id.trim() || sharing) return;
 
     setSharing(true);
     try {
       await apiService.shareResourceToGroup(parseInt(groupId!), {
         type: shareForm.type,
         resource_id: parseInt(shareForm.resource_id),
-        title: shareForm.title.trim()
+        title: shareForm.title?.trim() || undefined,
+        description: shareForm.description?.trim() || undefined
       });
       
       toast.success('Resource shared successfully!');
@@ -316,6 +315,20 @@ const GroupDetails: React.FC = () => {
       fetchResources();
     }
   }, [fetchGroupDetails]);
+
+  useEffect(() => {
+    if (!hasScrolledToBottom && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setHasScrolledToBottom(true);
+    }
+  }, [messages, hasScrolledToBottom]);
+
+  // Reset hasScrolledToBottom on unmount
+  useEffect(() => {
+    return () => {
+      setHasScrolledToBottom(false);
+    };
+  }, []);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -528,14 +541,14 @@ const GroupDetails: React.FC = () => {
               {/* Message Input */}
               <div className="border-t border-gray-200 p-4">
                 <form onSubmit={sendMessage} className="flex space-x-3">
-                  <input
-                    ref={inputRef}
-                    type="text"
+                  <textarea
+                    ref={inputRef as any}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type your message..."
-                    className="flex-1 input-field"
+                    className="flex-1 input-field resize-none min-h-[40px] max-h-[120px]"
                     disabled={sending}
+                    rows={1}
                   />
                   <button
                     type="submit"
@@ -599,6 +612,26 @@ const GroupDetails: React.FC = () => {
                       
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>Shared by {resource.shared_by.username}</span>
+                        {currentUser && resource.shared_by.username === currentUser.username && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              console.log('Attempting to delete resource:', resource);
+                              if (!window.confirm('Are you sure you want to remove this resource from the group?')) return;
+                              try {
+                                await apiService.deleteGroupResource(resource.id);
+                                toast.success('Resource removed from group');
+                                fetchResources();
+                              } catch (err: any) {
+                                toast.error(err.response?.data?.error || err.message || 'Failed to remove resource');
+                              }
+                            }}
+                            className="ml-2 p-1 rounded hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"
+                            title="Delete shared resource"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -770,7 +803,28 @@ const GroupDetails: React.FC = () => {
                   </label>
                   <select
                     value={shareForm.type}
-                    onChange={(e) => setShareForm({ ...shareForm, type: e.target.value as 'note' | 'quiz' | 'flashcard' })}
+                    onChange={async (e) => {
+                      const type = e.target.value as 'note' | 'quiz' | 'flashcard';
+                      setShareForm({ ...shareForm, type, resource_id: '' });
+                      setLoadingUserResources(true);
+                      try {
+                        if (type === 'note') {
+                          const res = await apiService.getNotes();
+                          console.log('Fetched notes:', res.data);
+                          setUserNotes(res.data);
+                        } else if (type === 'quiz') {
+                          const res = await apiService.getQuizzes();
+                          setUserQuizzes(res.data);
+                        } else if (type === 'flashcard') {
+                          const res = await apiService.getFlashcards();
+                          setUserFlashcards(res.data);
+                        }
+                      } catch (err) {
+                        toast.error('Failed to load your resources');
+                      } finally {
+                        setLoadingUserResources(false);
+                      }
+                    }}
                     className="input-field"
                   >
                     <option value="note">Note</option>
@@ -778,35 +832,46 @@ const GroupDetails: React.FC = () => {
                     <option value="flashcard">Flashcard</option>
                   </select>
                 </div>
-                
+                {shareForm.type && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select {shareForm.type.charAt(0).toUpperCase() + shareForm.type.slice(1)}
+                    </label>
+                    {loadingUserResources ? (
+                      <div className="text-gray-500 text-sm">Loading...</div>
+                    ) : (
+                      <select
+                        value={shareForm.resource_id}
+                        onChange={e => setShareForm({ ...shareForm, resource_id: e.target.value })}
+                        className="input-field"
+                        required
+                      >
+                        <option value="">Select a {shareForm.type}</option>
+                        {shareForm.type === 'note' && userNotes.map(note => (
+                          <option key={note.id} value={note.id}>{note.title}</option>
+                        ))}
+                        {shareForm.type === 'quiz' && userQuizzes.map(quiz => (
+                          <option key={quiz.id} value={quiz.id}>{quiz.note_title ? `${quiz.note_title} (Quiz)` : `Quiz #${quiz.id}`}</option>
+                        ))}
+                        {shareForm.type === 'flashcard' && userFlashcards.map(fc => (
+                          <option key={fc.id} value={fc.id}>{fc.question}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Resource ID
-                  </label>
-                  <input
-                    type="number"
-                    value={shareForm.resource_id}
-                    onChange={(e) => setShareForm({ ...shareForm, resource_id: e.target.value })}
-                    className="input-field"
-                    placeholder="Enter resource ID"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Title
+                    Title (Optional)
                   </label>
                   <input
                     type="text"
                     value={shareForm.title}
-                    onChange={(e) => setShareForm({ ...shareForm, title: e.target.value })}
+                    onChange={e => setShareForm({ ...shareForm, title: e.target.value })}
                     className="input-field"
-                    placeholder="Enter resource title"
-                    required
+                    placeholder="Enter a custom title (optional)"
                   />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description (Optional)
