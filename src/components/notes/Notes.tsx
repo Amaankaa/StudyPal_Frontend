@@ -18,6 +18,11 @@ import {
 import toast from 'react-hot-toast';
 import QuizzesModal from '../quizzes/QuizzesModal';
 
+// Type guard for parsed content
+function hasContentField(obj: any): obj is { content: string } {
+  return obj && typeof obj === 'object' && 'content' in obj && typeof obj.content === 'string';
+}
+
 const Notes: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
@@ -29,7 +34,9 @@ const Notes: React.FC = () => {
     title: '',
     content: '',
     notebook: '',
+    prompt: '', // Add prompt field
   });
+  const [generatingNote, setGeneratingNote] = useState(false); // Loading state for AI note generation
   const [generatingQuiz, setGeneratingQuiz] = useState<number | null>(null);
   const [generatingFlashcards, setGeneratingFlashcards] = useState<number | null>(null);
   const [showQuizzesModal, setShowQuizzesModal] = useState(false);
@@ -57,24 +64,60 @@ const Notes: React.FC = () => {
 
   const handleCreateNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.content.trim() || !formData.notebook) {
-      toast.error('Please fill in all fields');
+    if (!formData.title.trim() || !formData.notebook) {
+      toast.error('Please fill in the title and select a notebook');
       return;
     }
-
+    setGeneratingNote(true);
     try {
-      await apiService.createNote({
-        notebook: parseInt(formData.notebook),
+      const response = await apiService.generateNote({
         title: formData.title.trim(),
-        content: formData.content.trim(),
+        notebook_id: parseInt(formData.notebook),
+        prompt: formData.prompt?.trim() || undefined,
       });
-      toast.success('Note created successfully');
+      // Debug log for AI response
+      console.log('AI note response:', response.data);
+      let aiContent: string | undefined = undefined;
+      // Type guard for parsed content
+      if (typeof response.data.content === 'string') {
+        aiContent = response.data.content;
+      } else if (
+        typeof response.data === 'object' &&
+        response.data !== null &&
+        'note' in response.data &&
+        (response.data.note as any) &&
+        typeof (response.data.note as any).content === 'string'
+      ) {
+        // Fallback to note.content (if backend returns this structure)
+        aiContent = (response.data.note as any).content;
+        // Try to parse if it's a JSON string with a "content" field
+        if (aiContent && typeof aiContent === 'string') {
+          try {
+            const parsed = JSON.parse(aiContent);
+            if (hasContentField(parsed)) {
+              aiContent = parsed.content;
+            }
+          } catch (e) {
+            // If parsing fails, just use the string as-is
+          }
+        }
+      }
+      console.log('Content to save:', aiContent);
+      if (!aiContent || typeof aiContent !== 'string') {
+        toast.error('AI did not return valid note content.');
+        setGeneratingNote(false);
+        return;
+      }
+      // No need to call createNote here! The backend already saves the note.
+      toast.success('Note generated and saved successfully!');
       setShowCreateModal(false);
-      setFormData({ title: '', content: '', notebook: '' });
+      setFormData({ title: '', content: '', notebook: '', prompt: '' });
       fetchData();
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Failed to create note';
+      const message = error.response?.data?.detail || 'Failed to generate note';
       toast.error(message);
+    } finally {
+      setGeneratingNote(false);
     }
   };
 
@@ -92,7 +135,7 @@ const Notes: React.FC = () => {
       });
       toast.success('Note updated successfully');
       setEditingNote(null);
-      setFormData({ title: '', content: '', notebook: '' });
+      setFormData({ title: '', content: '', notebook: '', prompt: '' });
       fetchData();
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Failed to update note';
@@ -121,13 +164,14 @@ const Notes: React.FC = () => {
       title: note.title,
       content: note.content,
       notebook: note.notebook.toString(),
+      prompt: '',
     });
   };
 
   const handleCancel = () => {
     setShowCreateModal(false);
     setEditingNote(null);
-    setFormData({ title: '', content: '', notebook: '' });
+    setFormData({ title: '', content: '', notebook: '', prompt: '' });
   };
 
   const handleGenerateQuiz = async (noteId: number) => {
@@ -196,6 +240,28 @@ const Notes: React.FC = () => {
   const truncateText = (text: string, maxLength: number = 150) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+  };
+
+  // Utility to normalize note content
+  const getNoteContentString = (content: any) => {
+    // If content is a stringified JSON with a 'content' field, parse and return it
+    if (typeof content === 'string') {
+      try {
+        const parsed = JSON.parse(content);
+        if (hasContentField(parsed)) {
+          return parsed.content;
+        }
+      } catch (e) {
+        // Not a JSON string, just return as-is
+      }
+      return content;
+    }
+    if (Array.isArray(content)) {
+      return content.map(
+        para => typeof para === 'object' && para.paragraph ? para.paragraph : JSON.stringify(para)
+      ).join('\n\n');
+    }
+    return JSON.stringify(content);
   };
 
   if (loading) {
@@ -292,7 +358,7 @@ const Notes: React.FC = () => {
                       {note.title}
                     </h3>
                     <p className="text-sm text-gray-600 line-clamp-3">
-                      {truncateText(note.content)}
+                      {truncateText(getNoteContentString(note.content))}
                     </p>
                   </div>
                   <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
@@ -369,27 +435,41 @@ const Notes: React.FC = () => {
             </h2>
             <form onSubmit={editingNote ? handleUpdateNote : handleCreateNote}>
               {!editingNote && (
-                <div className="mb-4">
-                  <label htmlFor="notebook" className="block text-sm font-medium text-gray-700 mb-2">
-                    Notebook
-                  </label>
-                  <select
-                    id="notebook"
-                    value={formData.notebook}
-                    onChange={(e) => setFormData({ ...formData, notebook: e.target.value })}
-                    className="input-field"
-                    required
-                  >
-                    <option value="">Select a notebook</option>
-                    {notebooks.map((notebook) => (
-                      <option key={notebook.id} value={notebook.id}>
-                        {notebook.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <>
+                  <div className="mb-4">
+                    <label htmlFor="notebook" className="block text-sm font-medium text-gray-700 mb-2">
+                      Notebook
+                    </label>
+                    <select
+                      id="notebook"
+                      value={formData.notebook}
+                      onChange={(e) => setFormData({ ...formData, notebook: e.target.value })}
+                      className="input-field"
+                      required
+                    >
+                      <option value="">Select a notebook</option>
+                      {notebooks.map((notebook) => (
+                        <option key={notebook.id} value={notebook.id}>
+                          {notebook.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mb-4">
+                    <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
+                      AI Prompt (Optional)
+                    </label>
+                    <input
+                      id="prompt"
+                      type="text"
+                      value={formData.prompt}
+                      onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
+                      className="input-field"
+                      placeholder="Add extra instructions/context for the AI (optional)"
+                    />
+                  </div>
+                </>
               )}
-
               <div className="mb-4">
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                   Title
@@ -402,35 +482,39 @@ const Notes: React.FC = () => {
                   className="input-field"
                   placeholder="Enter note title"
                   required
+                  disabled={!!editingNote}
                 />
               </div>
-
-              <div className="mb-6">
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-                  Content
-                </label>
-                <textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="input-field min-h-[200px] resize-y"
-                  placeholder="Write your note content here..."
-                  required
-                />
-              </div>
-
+              {/* Hide content field for AI note creation */}
+              {editingNote && (
+                <div className="mb-6">
+                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                    Content
+                  </label>
+                  <textarea
+                    id="content"
+                    value={formData.content}
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    className="input-field min-h-[200px] resize-y"
+                    placeholder="Write your note content here..."
+                    required
+                  />
+                </div>
+              )}
               <div className="flex items-center space-x-4">
                 <button
                   type="submit"
                   className="btn-primary flex items-center space-x-2"
+                  disabled={generatingNote}
                 >
                   <Save size={16} />
-                  <span>{editingNote ? 'Update' : 'Create'}</span>
+                  <span>{editingNote ? 'Update' : generatingNote ? 'Generating...' : 'Create with AI'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleCancel}
                   className="btn-secondary flex items-center space-x-2"
+                  disabled={generatingNote}
                 >
                   <X size={16} />
                   <span>Cancel</span>
@@ -470,7 +554,7 @@ const Notes: React.FC = () => {
               </div>
             </div>
             <div className="prose max-w-none text-gray-900 whitespace-pre-line">
-              {selectedNote.content}
+              {getNoteContentString(selectedNote.content)}
             </div>
           </div>
         </div>
