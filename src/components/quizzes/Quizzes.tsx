@@ -15,6 +15,17 @@ const QuizzesPage: React.FC = () => {
     fetchNotesAndQuizCounts();
   }, []);
 
+  useEffect(() => {
+    if (
+      showQuizzesModal &&
+      selectedNoteForQuizzes !== null &&
+      quizCounts[selectedNoteForQuizzes] === 0
+    ) {
+      setShowQuizzesModal(false);
+      setSelectedNoteForQuizzes(null);
+    }
+  }, [quizCounts, selectedNoteForQuizzes, showQuizzesModal]);
+
   const fetchNotesAndQuizCounts = async () => {
     setLoading(true);
     try {
@@ -79,6 +90,7 @@ const QuizzesPage: React.FC = () => {
           <QuizzesModal
             noteId={selectedNoteForQuizzes}
             onClose={() => { setShowQuizzesModal(false); setSelectedNoteForQuizzes(null); }}
+            onQuizzesChanged={fetchNotesAndQuizCounts}
           />
         )}
       </div>

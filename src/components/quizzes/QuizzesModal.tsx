@@ -6,9 +6,10 @@ import toast from 'react-hot-toast';
 interface QuizzesModalProps {
   noteId: number;
   onClose: () => void;
+  onQuizzesChanged?: () => Promise<void>;
 }
 
-const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose }) => {
+const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesChanged }) => {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuiz, setSelectedQuiz] = useState<any | null>(null);
@@ -90,7 +91,13 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose }) => {
     try {
       await apiService.deleteQuiz(quizId);
       toast.success('Quiz deleted successfully');
-      fetchQuizzes();
+      // Refetch quizzes
+      const res = await apiService.getQuizzesForNote(noteId);
+      const quizzes = res.data.quizzes || [];
+      setQuizzes(quizzes);
+      // Notify parent and wait for it to finish
+      if (onQuizzesChanged) await onQuizzesChanged();
+      // If no quizzes left, close the modal
       if (selectedQuiz && selectedQuiz.quiz_id === quizId) exitQuiz();
     } catch (error) {
       toast.error('Failed to delete quiz');
