@@ -186,46 +186,49 @@ const Notebooks: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredNotebooks.map((notebook) => (
-                <div key={notebook.id} className="card group hover:shadow-lg transition-shadow duration-200">
+                <div
+                  key={notebook.id}
+                  className="rounded-2xl shadow-xl bg-gradient-to-br from-primary-100 via-white to-secondary-100 border-2 border-primary-200 flex flex-col p-6 transition-transform duration-200 hover:scale-105 hover:shadow-2xl group"
+                >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
-                      <BookOpen size={24} className="text-white" />
+                    <div className="w-14 h-14 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <BookOpen size={28} className="text-white" />
                     </div>
                     <div className="relative">
-                      <button className="p-1 hover:bg-gray-100 rounded transition-colors duration-200">
-                        <MoreVertical size={16} className="text-gray-400" />
+                      <button className="p-2 hover:bg-primary-50 rounded-xl transition-colors duration-200">
+                        <MoreVertical size={18} className="text-primary-400" />
                       </button>
                     </div>
                   </div>
 
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                  <h3 className="text-xl font-extrabold text-primary-900 mb-2 line-clamp-2">
                     {notebook.title}
                   </h3>
 
-                  <div className="flex items-center text-sm text-gray-500 mb-4">
-                    <Calendar size={16} className="mr-2" />
+                  <div className="flex items-center text-sm text-primary-600 mb-4">
+                    <Calendar size={18} className="mr-2" />
                     {formatDate(notebook.created_at)}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <FileText size={16} className="mr-1" />
+                  <div className="flex items-center justify-between mt-auto">
+                    <div className="flex items-center text-base text-primary-700 font-semibold">
+                      <FileText size={18} className="mr-1" />
                       <span>{notebook.note_count} note{notebook.note_count === 1 ? '' : 's'}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleEdit(notebook)}
-                        className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors duration-200"
+                        className="p-2 text-primary-400 hover:text-primary-700 hover:bg-primary-100 rounded-xl transition-colors duration-200"
                       >
-                        <Edit3 size={16} />
+                        <Edit3 size={18} />
                       </button>
                       <button
                         onClick={() => handleDeleteNotebook(notebook)}
-                        className="p-2 text-gray-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors duration-200"
+                        className="p-2 text-danger-400 hover:text-danger-700 hover:bg-danger-100 rounded-xl transition-colors duration-200"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>

@@ -85,16 +85,17 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [notebooksRes, notesRes, quizzesRes] = await Promise.all([
+        const [notebooksRes, notesRes, quizzesRes, flashcardsRes] = await Promise.all([
           apiService.getNotebooks(),
           apiService.getNotes(),
           apiService.getQuizzes(),
+          apiService.getFlashcards(),
         ]);
 
         setStats({
           notebooks: notebooksRes.data.length,
           notes: notesRes.data.length,
-          flashcards: 0, // Flashcards are now AI-generated per note
+          flashcards: flashcardsRes.data.length,
           quizzes: quizzesRes.data.length,
         });
       } catch (error) {
@@ -231,6 +232,37 @@ const Dashboard: React.FC = () => {
     },
   ];
 
+  const quickActions = [
+    {
+      title: 'Create Notebook',
+      description: 'Organize your notes',
+      icon: BookOpen,
+      href: '/notebooks',
+      color: 'from-primary-400 to-primary-600',
+    },
+    {
+      title: 'Add Note',
+      description: 'Capture your thoughts',
+      icon: FileText,
+      href: '/notes',
+      color: 'from-success-400 to-success-600',
+    },
+    {
+      title: 'Study Flashcards',
+      description: 'AI-generated from notes',
+      icon: CreditCard,
+      href: '/flashcards',
+      color: 'from-warning-400 to-warning-600',
+    },
+    {
+      title: 'Generate Quiz',
+      description: 'Test your knowledge',
+      icon: Brain,
+      href: '/quizzes',
+      color: 'from-secondary-400 to-secondary-600',
+    },
+  ];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -278,7 +310,7 @@ const Dashboard: React.FC = () => {
                           <Pie
                             data={[
                               { name: 'Quiz Attempts', value: userProgress.total_quiz_attempts },
-                              { name: 'Flashcard Sets', value: userProgress.flashcard_set_attempts || Math.floor(userProgress.total_flashcard_attempts / 5) },
+                              { name: 'Flashcard Sets', value: Math.floor(userProgress.total_flashcard_attempts / 5) },
                             ]}
                             dataKey="value"
                             nameKey="name"
@@ -336,24 +368,10 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
             </div>
-             {/* User Points */}
-             <div className="card p-4 max-w-xl mt-4">
-               <h2 className="text-lg font-semibold text-gray-900 mb-2">Your Points</h2>
-               {loadingUserPoints ? (
-                 <div className="flex items-center space-x-2 text-gray-600">
-                   <div className="w-6 h-6 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-                   <span>Loading points...</span>
-                 </div>
-               ) : userPoints !== null ? (
-                 <div className="text-2xl font-bold text-primary-600">{userPoints} pts</div>
-               ) : (
-                 <span className="text-gray-400">No points data available.</span>
-               )}
-             </div>
             </div>
            {/* Leaderboard */}
            <div className="mt-6">
-             <div className="p-8 max-w-3xl mx-auto rounded-3xl shadow-2xl bg-gradient-to-br from-yellow-50 via-white to-primary-100 border-2 border-primary-200">
+             <div className="p-8 max-w-3xl mx-auto rounded-3xl shadow-2xl bg-gradient-to-br from-yellow-50 via-white to-primary-100 border-2 border-yellow-200">
                <h2 className="text-2xl font-bold text-primary-700 mb-6 flex items-center gap-2">
                  <Trophy className="text-yellow-400" size={28} /> Leaderboard
                </h2>
@@ -458,21 +476,50 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
+          {/* Quick Actions */}
+          <div className="mb-10">
+            <h2 className="text-xl font-bold text-primary-700 mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {quickActions.map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <Link
+                    key={index}
+                    to={action.href}
+                    className={
+                      `group card p-6 rounded-2xl shadow-xl bg-gradient-to-br ${action.color} text-white flex flex-col items-start justify-between transition-transform duration-200 hover:scale-105 hover:shadow-2xl border-2 border-white/30`
+                    }
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="p-3 rounded-xl bg-white/20 shadow-lg">
+                        <Icon size={28} className="text-white drop-shadow" />
+                      </div>
+                      <h3 className="text-lg font-bold tracking-wide drop-shadow">{action.title}</h3>
+                    </div>
+                    <p className="text-base font-medium opacity-90 mb-2 drop-shadow">{action.description}</p>
+                    <span className="mt-auto text-sm font-semibold underline underline-offset-4 opacity-80 group-hover:opacity-100">Go</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             {(Array.isArray(statCards) ? statCards : []).map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className="card">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    </div>
-                    <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                      <Icon size={24} className={stat.color} />
+                <div
+                  key={index}
+                  className={`rounded-2xl shadow-xl bg-gradient-to-br ${stat.bgColor} flex flex-col items-center justify-center p-8 border-2 border-white/30 transition-transform duration-200 hover:scale-105 hover:shadow-2xl`}
+                >
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="p-4 rounded-xl bg-white/30 shadow-lg">
+                      <Icon size={32} className={stat.color} />
                     </div>
                   </div>
+                  <p className="text-lg font-extrabold text-primary-900 mb-1">{stat.value}</p>
+                  <p className="text-base font-semibold text-gray-800 mb-1">{stat.title}</p>
                 </div>
               );
             })}
@@ -481,31 +528,32 @@ const Dashboard: React.FC = () => {
           {/* Study Progress */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Recent Activity */}
-            <div className="card">
+            <div className="card rounded-2xl shadow-xl bg-gradient-to-br from-primary-50 via-white to-primary-100 border border-primary-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
                 <Clock size={20} className="text-gray-400" />
               </div>
               <div className="space-y-4">
+                {/* Placeholder for last 2 recent actions. Replace with real activity data if available. */}
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Dashboard loaded</p>
-                    <p className="text-xs text-gray-500">Just now</p>
+                    <p className="text-sm font-medium text-gray-900">Completed a quiz</p>
+                    <p className="text-xs text-gray-500">2 minutes ago</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-2 h-2 bg-success-500 rounded-full"></div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Welcome to StudyPal</p>
-                    <p className="text-xs text-gray-500">Start organizing your studies</p>
+                    <p className="text-sm font-medium text-gray-900">Reviewed 5 flashcards</p>
+                    <p className="text-xs text-gray-500">5 minutes ago</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Study Tips */}
-            <div className="card">
+            <div className="card rounded-2xl shadow-xl bg-gradient-to-br from-secondary-50 via-white to-secondary-100 border border-secondary-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Study Tips</h3>
                 <Target size={20} className="text-gray-400" />
