@@ -15,8 +15,18 @@ import {
   Pause,
   BookOpen,
   Brain,
+  CheckCircle,
+  XCircle,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+interface FlashcardStat {
+  attempts: number;
+  correct: number;
+  accuracy: number;
+  last_reviewed: string;
+}
 
 const Flashcards: React.FC = () => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
@@ -29,10 +39,36 @@ const Flashcards: React.FC = () => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedNote, setSelectedNote] = useState<number | null>(null);
   const [generatingFlashcards, setGeneratingFlashcards] = useState<number | null>(null);
+  const [submittingAttempt, setSubmittingAttempt] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'correct' | 'incorrect' | null, message: string } | null>(null);
+  const [flashcardStats, setFlashcardStats] = useState<{ [id: number]: FlashcardStat }>({});
+  const [loadingStats, setLoadingStats] = useState<{ [id: number]: boolean }>({});
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Fetch stats for all flashcards when flashcards change
+  useEffect(() => {
+    const fetchStats = async () => {
+      const stats: { [id: number]: FlashcardStat } = {};
+      const loading: { [id: number]: boolean } = {};
+      for (const fc of flashcards) {
+        loading[fc.id] = true;
+        try {
+          const res = await apiService.getFlashcardStats(fc.id);
+          stats[fc.id] = res.data;
+        } catch (err) {
+          // If stats not found, skip
+        } finally {
+          loading[fc.id] = false;
+        }
+      }
+      setFlashcardStats(stats);
+      setLoadingStats(loading);
+    };
+    if (flashcards.length > 0) fetchStats();
+  }, [flashcards]);
 
   const fetchData = async () => {
     try {
@@ -140,6 +176,35 @@ const Flashcards: React.FC = () => {
 
   const currentCard = filteredFlashcards[currentCardIndex];
 
+  // Submit a flashcard review attempt (optionally with correct/incorrect)
+  const submitFlashcardAttempt = async (correct?: boolean) => {
+    if (!currentCard) return;
+    setSubmittingAttempt(true);
+    setFeedback(null);
+    try {
+      await apiService.submitFlashcardAttempt(currentCard.id, correct);
+      if (typeof correct === 'boolean') {
+        setFeedback({
+          type: correct ? 'correct' : 'incorrect',
+          message: correct ? 'Marked as correct!' : 'Marked as incorrect!'
+        });
+        // Auto-advance after 1s if not last card
+        setTimeout(() => {
+          setFeedback(null);
+          if (currentCardIndex < filteredFlashcards.length - 1) {
+            setCurrentCardIndex(currentCardIndex + 1);
+            setIsFlipped(false);
+            setShowAnswer(false);
+          }
+        }, 1000);
+      }
+    } catch (error) {
+      toast.error('Failed to record flashcard attempt.');
+    } finally {
+      setSubmittingAttempt(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -199,8 +264,9 @@ const Flashcards: React.FC = () => {
                         {currentCard?.question}
                       </h2>
                       <button
-                        onClick={flipCard}
+                        onClick={async () => { flipCard(); await submitFlashcardAttempt(); }}
                         className="btn-primary flex items-center space-x-2"
+                        disabled={submittingAttempt}
                       >
                         <RotateCcw size={20} />
                         <span>Flip Card</span>
@@ -224,12 +290,47 @@ const Flashcards: React.FC = () => {
                         {currentCard?.answer}
                       </h2>
                       <button
-                        onClick={flipCard}
+                        onClick={async () => { flipCard(); await submitFlashcardAttempt(); }}
                         className="btn-primary flex items-center space-x-2"
+                        disabled={submittingAttempt}
                       >
                         <RotateCcw size={20} />
                         <span>Flip Back</span>
                       </button>
+                      <div className="flex items-center justify-center space-x-4 mt-6">
+                        <button
+                          onClick={() => submitFlashcardAttempt(true)}
+                          className={`btn-success flex items-center space-x-2 transition-transform duration-150 ${submittingAttempt || feedback ? 'scale-95 opacity-60 cursor-not-allowed' : 'hover:scale-105'}`}
+                          disabled={submittingAttempt || !!feedback}
+                          style={feedback?.type === 'correct' ? { backgroundColor: '#d1fae5', color: '#059669' } : {}}
+                        >
+                          {submittingAttempt && !feedback ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <CheckCircle size={20} />
+                          )}
+                          <span>I got it right</span>
+                        </button>
+                        <button
+                          onClick={() => submitFlashcardAttempt(false)}
+                          className={`btn-danger flex items-center space-x-2 transition-transform duration-150 ${submittingAttempt || feedback ? 'scale-95 opacity-60 cursor-not-allowed' : 'hover:scale-105'}`}
+                          disabled={submittingAttempt || !!feedback}
+                          style={feedback?.type === 'incorrect' ? { backgroundColor: '#fee2e2', color: '#dc2626' } : {}}
+                        >
+                          {submittingAttempt && !feedback ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <XCircle size={20} />
+                          )}
+                          <span>I got it wrong</span>
+                        </button>
+                      </div>
+                      {feedback && (
+                        <div className={`mt-4 flex items-center justify-center space-x-2 text-lg font-semibold ${feedback.type === 'correct' ? 'text-success-600' : 'text-danger-600'}`}>
+                          {feedback.type === 'correct' ? <CheckCircle size={22} /> : <XCircle size={22} />}
+                          <span>{feedback.message}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -374,6 +475,21 @@ const Flashcards: React.FC = () => {
                       <p className="text-sm text-gray-600 line-clamp-3">
                         {flashcard.answer}
                       </p>
+                      <div className="mt-4">
+                        <h5 className="text-xs font-semibold text-gray-700 mb-1">Stats:</h5>
+                        {loadingStats[flashcard.id] ? (
+                          <span className="text-xs text-gray-400">Loading...</span>
+                        ) : flashcardStats[flashcard.id] ? (
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <div>Attempts: {flashcardStats[flashcard.id].attempts}</div>
+                            <div>Correct: {flashcardStats[flashcard.id].correct}</div>
+                            <div>Accuracy: {flashcardStats[flashcard.id].accuracy}%</div>
+                            <div>Last Reviewed: {flashcardStats[flashcard.id].last_reviewed ? new Date(flashcardStats[flashcard.id].last_reviewed).toLocaleString() : 'Never'}</div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">No stats</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

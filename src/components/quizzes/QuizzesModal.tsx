@@ -17,6 +17,7 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchQuizzes();
@@ -69,21 +70,21 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
     }
   };
 
-  const submitQuiz = () => {
+  const submitQuiz = async () => {
     if (!selectedQuiz) return;
-    let correctAnswers = 0;
-    selectedQuiz.questions.forEach((question: any, index: number) => {
-      const selectedAnswer = selectedAnswers[index];
-      const correctAnswer = question.correct;
-      const selectedLetter = selectedAnswer ? selectedAnswer.trim().charAt(0).toUpperCase() : '';
-      const correctLetter = correctAnswer ? correctAnswer.trim().charAt(0).toUpperCase() : '';
-      if (selectedLetter === correctLetter) {
-        correctAnswers++;
-      }
-    });
-    const finalScore = Math.round((correctAnswers / selectedQuiz.questions.length) * 100);
-    setScore(finalScore);
-    setShowResults(true);
+    setSubmitting(true);
+    try {
+      // Prepare answers as array of letters (A, B, ...)
+      const answers = selectedAnswers.map(ans => ans ? ans.trim().charAt(0).toUpperCase() : '');
+      const res = await apiService.submitQuizAttempt(selectedQuiz.quiz_id, answers);
+      setScore(res.data.score || 0);
+      setShowResults(true);
+      // Optionally: store result details if needed
+    } catch (error) {
+      toast.error('Failed to submit quiz.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDeleteQuiz = async (quizId: number) => {
@@ -168,9 +169,9 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                     {currentQuestionIndex + 1} / {selectedQuiz.questions.length}
                   </span>
                   {currentQuestionIndex === selectedQuiz.questions.length - 1 ? (
-                    <button onClick={submitQuiz} className="btn-primary flex items-center space-x-2">
+                    <button onClick={submitQuiz} className="btn-primary flex items-center space-x-2" disabled={submitting}>
                       <Trophy size={20} />
-                      <span>Submit Quiz</span>
+                      <span>{submitting ? 'Submitting...' : 'Submit Quiz'}</span>
                     </button>
                   ) : (
                     <button onClick={nextQuestion} className="btn-primary flex items-center space-x-2">

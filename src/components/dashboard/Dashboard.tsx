@@ -20,6 +20,8 @@ import {
   Bell,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
+import { CheckCircle, Flame, Trophy } from 'lucide-react';
 
 interface DashboardStats {
   notebooks: number;
@@ -44,6 +46,21 @@ interface GroupInvitation {
   status: string;
 }
 
+interface UserProgress {
+  total_quiz_attempts: number;
+  total_flashcard_attempts: number;
+  average_quiz_score: number;
+  flashcard_accuracy: number;
+  current_streak_days: number;
+  flashcard_set_attempts?: number;
+}
+
+interface LeaderboardUser {
+  user_id: number;
+  username: string;
+  total_points: number;
+}
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
@@ -55,6 +72,15 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [invitations, setInvitations] = useState<GroupInvitation[]>([]);
   const [loadingInvitations, setLoadingInvitations] = useState(false);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(true);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [yourRank, setYourRank] = useState<number | null>(null);
+  const [yourPoints, setYourPoints] = useState<number | null>(null);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+
+  const [userPoints, setUserPoints] = useState<number | null>(null);
+  const [loadingUserPoints, setLoadingUserPoints] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -78,6 +104,18 @@ const Dashboard: React.FC = () => {
       }
     };
 
+    const fetchUserProgress = async () => {
+      setLoadingProgress(true);
+      try {
+        const res = await apiService.getUserProgress();
+        setUserProgress(res.data);
+      } catch (error) {
+        toast.error('Failed to load user progress');
+      } finally {
+        setLoadingProgress(false);
+      }
+    };
+
     const fetchInvitations = async () => {
       setLoadingInvitations(true);
       try {
@@ -90,8 +128,38 @@ const Dashboard: React.FC = () => {
       }
     };
 
+    const fetchLeaderboard = async () => {
+      setLoadingLeaderboard(true);
+      try {
+        const res = await apiService.getLeaderboard() as any;
+        console.log('Leaderboard API response:', res.data);
+        setLeaderboard(Array.isArray(res.data.leaderboard) ? res.data.leaderboard : []);
+        setYourRank(res.data.user_rank);
+        setYourPoints(res.data.user_points);
+      } catch (error) {
+        toast.error('Failed to load leaderboard');
+      } finally {
+        setLoadingLeaderboard(false);
+      }
+    };
+
+    const fetchUserPoints = async () => {
+      setLoadingUserPoints(true);
+      try {
+        const res = await apiService.getUserPoints() as any;
+        setUserPoints(res.data.total_points);
+      } catch (error) {
+        toast.error('Failed to load your points');
+      } finally {
+        setLoadingUserPoints(false);
+      }
+    };
+
     fetchStats();
+    fetchUserProgress();
     fetchInvitations();
+    fetchLeaderboard();
+    fetchUserPoints();
   }, []);
 
   const handleAcceptInvitation = async (invitationId: number) => {
@@ -131,37 +199,6 @@ const Dashboard: React.FC = () => {
       return `${Math.floor(diffInHours / 24)} days ago`;
     }
   };
-
-  const quickActions = [
-    {
-      title: 'Create Notebook',
-      description: 'Organize your notes',
-      icon: BookOpen,
-      href: '/notebooks',
-      color: 'bg-primary-500',
-    },
-    {
-      title: 'Add Note',
-      description: 'Capture your thoughts',
-      icon: FileText,
-      href: '/notes',
-      color: 'bg-success-500',
-    },
-    {
-      title: 'Study Flashcards',
-      description: 'AI-generated from notes',
-      icon: CreditCard,
-      href: '/flashcards',
-      color: 'bg-warning-500',
-    },
-    {
-      title: 'Generate Quiz',
-      description: 'Test your knowledge',
-      icon: Brain,
-      href: '/quizzes',
-      color: 'bg-secondary-500',
-    },
-  ];
 
   const statCards = [
     {
@@ -207,6 +244,9 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Debug: log leaderboard before rendering
+  console.log('Leaderboard:', leaderboard);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-6">
@@ -218,6 +258,151 @@ const Dashboard: React.FC = () => {
             <p className="text-gray-600 mt-2">
               Here's what's happening with your studies today.
             </p>
+            {/* User Progress Summary - visually appealing */}
+            <div className="mt-6">
+              <div className="card p-6 max-w-4xl min-h-[320px] shadow-xl bg-gradient-to-br from-primary-50 to-white border border-primary-200 flex flex-col justify-center items-center">
+                <h2 className="text-xl font-bold text-primary-700 mb-4 flex items-center gap-2">
+                  <CheckCircle className="text-success-500" size={22} /> Your Progress Summary
+                </h2>
+                {loadingProgress ? (
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <div className="w-6 h-6 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+                    <span>Loading progress...</span>
+                  </div>
+                ) : userProgress ? (
+                  <div className="flex flex-col items-center w-full">
+                    {/* Donut Chart for Attempts */}
+                    <div className="w-96 h-96 flex flex-col items-center justify-center mx-auto">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Quiz Attempts', value: userProgress.total_quiz_attempts },
+                              { name: 'Flashcard Sets', value: userProgress.flashcard_set_attempts || Math.floor(userProgress.total_flashcard_attempts / 5) },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="48%"
+                            innerRadius={60}
+                            outerRadius={90}
+                            fill="#8884d8"
+                            label={({ percent }) => `${(percent ? percent * 100 : 0).toFixed(2)}%`}
+                            labelLine={false}
+                          >
+                            <Cell key="quiz" fill="#6366f1" />
+                            <Cell key="flashcard" fill="#f59e42" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="flex gap-8 mt-4 text-base">
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-primary-500 inline-block"></span>Quiz Attempts</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-400 inline-block"></span>Flashcard Sets</span>
+                      </div>
+                    </div>
+                    {/* Stats Row */}
+                    <div className="flex flex-col md:flex-row gap-4 w-full justify-center items-stretch mt-6">
+                      {/* Average Quiz Score */}
+                      <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col items-center">
+                        <Brain className="text-secondary-500 mb-1" size={28} />
+                        <span className="font-semibold text-lg text-gray-700 mb-1">Average Quiz Score</span>
+                        <span className="font-bold text-2xl text-primary-600 mb-1">{Number(userProgress.average_quiz_score).toFixed(2)}%</span>
+                        <div className="w-full h-3 bg-primary-100 rounded-full overflow-hidden">
+                          <div className="h-3 bg-primary-500 rounded-full transition-all duration-700" style={{ width: `${userProgress.average_quiz_score}%` }}></div>
+                        </div>
+                      </div>
+                      {/* Flashcard Accuracy */}
+                      <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col items-center">
+                        <CreditCard className="text-warning-500 mb-1" size={28} />
+                        <span className="font-semibold text-lg text-gray-700 mb-1">Flashcard Accuracy</span>
+                        <span className="font-bold text-2xl text-warning-600 mb-1">{Number(userProgress.flashcard_accuracy).toFixed(2)}%</span>
+                        <div className="w-full h-3 bg-warning-100 rounded-full overflow-hidden">
+                          <div className="h-3 bg-warning-500 rounded-full transition-all duration-700" style={{ width: `${userProgress.flashcard_accuracy}%` }}></div>
+                        </div>
+                      </div>
+                      {/* Current Streak */}
+                      <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col items-center">
+                        <Flame className="text-red-500 mb-1" size={28} />
+                        <span className="font-semibold text-lg text-gray-700 mb-1">Current Streak</span>
+                        <span className="font-bold text-2xl text-red-600 mb-1">{userProgress.current_streak_days} day{userProgress.current_streak_days !== 1 ? 's' : ''}</span>
+                        <div className="w-full h-3 bg-red-100 rounded-full overflow-hidden">
+                          <div className="h-3 bg-red-500 rounded-full transition-all duration-700" style={{ width: `${Math.min(userProgress.current_streak_days * 10, 100)}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-gray-400">No progress data available.</span>
+                )}
+              </div>
+            </div>
+             {/* User Points */}
+             <div className="card p-4 max-w-xl mt-4">
+               <h2 className="text-lg font-semibold text-gray-900 mb-2">Your Points</h2>
+               {loadingUserPoints ? (
+                 <div className="flex items-center space-x-2 text-gray-600">
+                   <div className="w-6 h-6 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+                   <span>Loading points...</span>
+                 </div>
+               ) : userPoints !== null ? (
+                 <div className="text-2xl font-bold text-primary-600">{userPoints} pts</div>
+               ) : (
+                 <span className="text-gray-400">No points data available.</span>
+               )}
+             </div>
+            </div>
+           {/* Leaderboard */}
+           <div className="mt-6">
+             <div className="p-8 max-w-3xl mx-auto rounded-3xl shadow-2xl bg-gradient-to-br from-yellow-50 via-white to-primary-100 border-2 border-primary-200">
+               <h2 className="text-2xl font-bold text-primary-700 mb-6 flex items-center gap-2">
+                 <Trophy className="text-yellow-400" size={28} /> Leaderboard
+               </h2>
+               {loadingLeaderboard ? (
+                 <div className="flex items-center space-x-2 text-gray-600">
+                   <div className="w-6 h-6 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+                   <span>Loading leaderboard...</span>
+                 </div>
+               ) : Array.isArray(leaderboard) && leaderboard.length > 0 ? (
+                 <div className="overflow-x-auto">
+                   <table className="min-w-full text-lg rounded-xl">
+                     <thead>
+                       <tr className="bg-primary-100 text-primary-700">
+                         <th className="px-6 py-3 text-left">Rank</th>
+                         <th className="px-6 py-3 text-left">User</th>
+                         <th className="px-6 py-3 text-left">Points</th>
+                       </tr>
+                     </thead>
+                     <tbody>
+                       {leaderboard.map((user, idx) => {
+                         const isTop = idx === 0;
+                         const isCurrent = yourRank === idx + 1;
+                         return (
+                           <tr
+                             key={user.user_id}
+                             className={`transition-all ${isCurrent ? 'bg-primary-200/60 font-bold text-primary-900' : 'hover:bg-primary-50'} ${isTop ? 'text-yellow-600' : ''}`}
+                           >
+                             <td className="px-6 py-3 font-bold flex items-center gap-2">
+                               {isTop && <Trophy className="inline text-yellow-400" size={22} />} {idx + 1}
+                             </td>
+                             <td className="px-6 py-3">{user.username}</td>
+                             <td className="px-6 py-3 font-bold">{user.total_points}</td>
+                           </tr>
+                         );
+                       })}
+                     </tbody>
+                   </table>
+                 </div>
+               ) : (
+                 <span className="text-gray-400">No leaderboard data available.</span>
+               )}
+               {yourRank !== null && yourPoints !== null && (
+                 <div className="mt-4 text-lg text-primary-800 flex items-center gap-4 justify-center">
+                   <span className="px-4 py-2 rounded-full bg-primary-100 font-bold shadow">Your Rank: {yourRank}</span>
+                   <span className="px-4 py-2 rounded-full bg-yellow-100 font-bold shadow">Your Points: {yourPoints}</span>
+                 </div>
+               )}
+             </div>
+           </div>
           </div>
 
           {/* Invitation Notifications */}
@@ -275,7 +460,7 @@ const Dashboard: React.FC = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {statCards.map((stat, index) => {
+            {(Array.isArray(statCards) ? statCards : []).map((stat, index) => {
               const Icon = stat.icon;
               return (
                 <div key={index} className="card">
@@ -291,33 +476,6 @@ const Dashboard: React.FC = () => {
                 </div>
               );
             })}
-          </div>
-
-          {/* Quick Actions */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {quickActions.map((action, index) => {
-                const Icon = action.icon;
-                return (
-                  <Link
-                    key={index}
-                    to={action.href}
-                    className="card hover:shadow-md transition-shadow duration-200 group"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className={`p-3 rounded-lg ${action.color} group-hover:scale-110 transition-transform duration-200`}>
-                        <Icon size={24} className="text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{action.title}</h3>
-                        <p className="text-sm text-gray-600">{action.description}</p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
           </div>
 
           {/* Study Progress */}
@@ -381,7 +539,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
     );
 };
 

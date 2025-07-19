@@ -421,6 +421,46 @@ class ApiService {
   async generateNote(data: { title: string; notebook_id: number; prompt?: string }): Promise<AxiosResponse<{ content: string }>> {
     return this.api.post('/notes/generate/', data);
   }
+
+  // Quiz Attempt Methods
+  async submitQuizAttempt(quizId: number, answers: string[]): Promise<AxiosResponse<{ score: number; result: any }>> {
+    return this.api.post('/quiz_attempts/', {
+      quiz: quizId,
+      answers: answers,
+    });
+  }
+
+  // Flashcard Attempt Methods
+  async submitFlashcardAttempt(flashcardId: number, correct?: boolean): Promise<AxiosResponse<{ result: any }>> {
+    const data: any = { flashcard: flashcardId };
+    if (typeof correct === 'boolean') data.correct = correct;
+    return this.api.post('/flashcard_attempts/', data);
+  }
+
+  // Quiz Stats Methods
+  async getQuizStats(quizId: number): Promise<AxiosResponse<{ attempts: number; average_score: number; best_score: number; last_score: number }>> {
+    return this.api.get(`/quiz_stats/${quizId}/`);
+  }
+
+  // Flashcard Stats Methods
+  async getFlashcardStats(flashcardId: number): Promise<AxiosResponse<{ attempts: number; correct: number; accuracy: number; last_reviewed: string }>> {
+    return this.api.get(`/flashcard_stats/${flashcardId}/`);
+  }
+
+  // User Progress Methods
+  async getUserProgress(): Promise<AxiosResponse<{ total_quiz_attempts: number; total_flashcard_attempts: number; average_quiz_score: number; flashcard_accuracy: number; current_streak_days: number }>> {
+    return this.api.get('/user/progress/');
+  }
+
+  // Leaderboard Methods
+  async getLeaderboard(): Promise<AxiosResponse<{ top_users: Array<{ username: string; points: number; rank: number }>; your_rank: number; your_points: number }>> {
+    return this.api.get('/leaderboard/');
+  }
+
+  // User Points Methods
+  async getUserPoints(): Promise<AxiosResponse<{ points: number; breakdown?: any }>> {
+    return this.api.get('/user/points/');
+  }
 }
 
 export const apiService = new ApiService();
