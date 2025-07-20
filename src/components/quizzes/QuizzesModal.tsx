@@ -277,13 +277,6 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                         <Play size={16} />
                         <span>Take Quiz</span>
                       </button>
-                      <button
-                        onClick={() => handleDeleteQuiz(quiz.quiz_id)}
-                        className="btn-secondary flex items-center space-x-2"
-                      >
-                        <Trash2 size={16} />
-                        <span>Delete</span>
-                      </button>
                     </div>
                   </div>
                 ))}

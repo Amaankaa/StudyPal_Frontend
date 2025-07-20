@@ -116,7 +116,7 @@ const GroupDetails: React.FC = () => {
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [selectedResource, setSelectedResource] = useState<SharedContent | null>(null);
   const [shareForm, setShareForm] = useState({
-    type: 'note' as 'note' | 'quiz' | 'flashcard',
+    type: '', // Default to empty, force user to select
     resource_id: '',
     title: '',
     description: ''
@@ -810,7 +810,6 @@ const GroupDetails: React.FC = () => {
                       try {
                         if (type === 'note') {
                           const res = await apiService.getNotes();
-                          console.log('Fetched notes:', res.data);
                           setUserNotes(res.data);
                         } else if (type === 'quiz') {
                           const res = await apiService.getQuizzes();
@@ -826,7 +825,9 @@ const GroupDetails: React.FC = () => {
                       }
                     }}
                     className="input-field"
+                    required
                   >
+                    <option value="" disabled>Select Resource</option>
                     <option value="note">Note</option>
                     <option value="quiz">Quiz</option>
                     <option value="flashcard">Flashcard</option>
@@ -936,11 +937,20 @@ const GroupDetails: React.FC = () => {
               ) : (
                 <div className="space-y-6">
                   {/* Note Content */}
-                  {selectedResource.content && (
+                  {selectedResource.content && typeof selectedResource.content === 'string' && (
                     <div>
                       <h3 className="text-lg font-medium text-gray-900 mb-3">Content</h3>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <p className="text-gray-900 whitespace-pre-wrap">{selectedResource.content}</p>
+                      </div>
+                    </div>
+                  )}
+                  {/* If content is a JSON object, extract and display only the 'content' field */}
+                  {selectedResource.content && typeof selectedResource.content === 'object' && selectedResource.content.content && (
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-3">Content</h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-gray-900 whitespace-pre-wrap">{selectedResource.content.content}</p>
                       </div>
                     </div>
                   )}
