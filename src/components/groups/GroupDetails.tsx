@@ -115,8 +115,13 @@ const GroupDetails: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [selectedResource, setSelectedResource] = useState<SharedContent | null>(null);
-  const [shareForm, setShareForm] = useState({
-    type: '', // Default to empty, force user to select
+  const [shareForm, setShareForm] = useState<{
+    type: string;
+    resource_id: string;
+    title: string;
+    description: string;
+  }>({
+    type: '',
     resource_id: '',
     title: '',
     description: ''
@@ -177,7 +182,7 @@ const GroupDetails: React.FC = () => {
     setSharing(true);
     try {
       await apiService.shareResourceToGroup(parseInt(groupId!), {
-        type: shareForm.type,
+        type: shareForm.type as 'note' | 'quiz' | 'flashcard',
         resource_id: parseInt(shareForm.resource_id),
         title: shareForm.title?.trim() || undefined,
         description: shareForm.description?.trim() || undefined
@@ -946,11 +951,14 @@ const GroupDetails: React.FC = () => {
                     </div>
                   )}
                   {/* If content is a JSON object, extract and display only the 'content' field */}
-                  {selectedResource.content && typeof selectedResource.content === 'object' && selectedResource.content.content && (
+                  {selectedResource.content &&
+                    typeof selectedResource.content === 'object' &&
+                    'content' in selectedResource.content &&
+                    typeof (selectedResource.content as any).content === 'string' && (
                     <div>
                       <h3 className="text-lg font-medium text-gray-900 mb-3">Content</h3>
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-gray-900 whitespace-pre-wrap">{selectedResource.content.content}</p>
+                        <p className="text-gray-900 whitespace-pre-wrap">{(selectedResource.content as any).content}</p>
                       </div>
                     </div>
                   )}
