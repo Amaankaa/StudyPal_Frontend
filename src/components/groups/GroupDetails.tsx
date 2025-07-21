@@ -227,26 +227,17 @@ const GroupDetails: React.FC = () => {
 
   const submitQuiz = () => {
     if (!selectedResource?.questions) return;
-    
     let correct = 0;
     const total = selectedResource.questions.length;
-    
     selectedResource.questions.forEach((question, index) => {
       const userAnswer = quizAnswers[index];
-      const correctAnswerLetter = question.correct; // Backend returns "A", "B", "C", "D"
-      
-      // Find the user's answer letter
-      const userAnswerIndex = question.options.findIndex(option => option === userAnswer);
-      const userAnswerLetter = String.fromCharCode(65 + userAnswerIndex);
-      
-      if (userAnswerLetter === correctAnswerLetter) {
+      const correctAnswerText = question.correct;
+      if (userAnswer === correctAnswerText) {
         correct++;
       }
     });
-    
     setQuizScore({ correct, total });
     setQuizSubmitted(true);
-    
     const percentage = Math.round((correct / total) * 100);
     toast.success(`Quiz completed! Score: ${correct}/${total} (${percentage}%)`);
   };
@@ -991,26 +982,22 @@ const GroupDetails: React.FC = () => {
                               {quizScore.correct}/{quizScore.total}
                             </div>
                           </div>
-                          
                           {/* Correct Answers Summary */}
                           <div className="border-t border-blue-200 pt-3">
                             <h5 className="font-medium text-blue-900 mb-2">Correct Answers:</h5>
                             <div className="space-y-1">
                               {selectedResource.questions.map((question, index) => {
-                                const correctAnswerLetter = question.correct; // Backend returns "A", "B", "C", "D"
                                 const userAnswer = quizAnswers[index];
-                                const userAnswerIndex = question.options.findIndex(option => option === userAnswer);
-                                const userAnswerLetter = String.fromCharCode(65 + userAnswerIndex);
-                                const isCorrect = userAnswerLetter === correctAnswerLetter;
-                                
+                                const correctAnswerText = question.correct;
+                                const isCorrect = userAnswer === correctAnswerText;
                                 return (
                                   <div key={index} className="flex items-center space-x-2 text-sm">
                                     <span className="font-medium">Q{index + 1}:</span>
                                     <span className={isCorrect ? "text-green-700" : "text-red-700"}>
-                                      {isCorrect ? "✓" : "✗"} Your answer: {userAnswerLetter}
+                                      {isCorrect ? "✓" : "✗"} Your answer: {userAnswer || <em>None</em>}
                                     </span>
                                     <span className="text-blue-700">
-                                      Correct: {correctAnswerLetter}
+                                      Correct: {correctAnswerText}
                                     </span>
                                   </div>
                                 );
@@ -1028,13 +1015,10 @@ const GroupDetails: React.FC = () => {
                             </h4>
                             <div className="space-y-2">
                               {question.options.map((option, optionIndex) => {
-                                const optionLetter = String.fromCharCode(65 + optionIndex);
                                 const isSelected = quizAnswers[index] === option;
-                                const isCorrectAnswer = optionLetter === question.correct; // Backend returns "A", "B", "C", "D"
+                                const isCorrectAnswer = option === question.correct;
                                 const showResults = quizSubmitted;
-                                
                                 let className = "p-3 rounded border cursor-pointer transition-colors";
-                                
                                 if (showResults) {
                                   if (isCorrectAnswer) {
                                     className += " bg-green-100 border-green-300 text-green-800";
@@ -1050,15 +1034,15 @@ const GroupDetails: React.FC = () => {
                                     className += " bg-white border-gray-300 text-gray-700 hover:bg-gray-50";
                                   }
                                 }
-                                
+                                const rawOption = option.replace(/^[A-D]\.\s*/, '');
                                 return (
                                   <div
                                     key={optionIndex}
                                     className={className}
-                                    onClick={() => !quizSubmitted && handleQuizAnswer(index, option)}
+                                    onClick={() => !quizSubmitted && handleQuizAnswer(index, rawOption)}
                                   >
                                     <div className="flex items-center justify-between">
-                                      <span>{optionLetter}. {option}</span>
+                                      <span>{String.fromCharCode(65 + optionIndex)}. {option}</span>
                                       {showResults && (
                                         <span className="text-sm font-medium">
                                           {isCorrectAnswer ? "✓ Correct Answer" : isSelected ? "✗ Your Answer" : ""}
