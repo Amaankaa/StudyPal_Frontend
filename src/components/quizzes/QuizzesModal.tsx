@@ -74,13 +74,8 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
     if (!selectedQuiz) return;
     setSubmitting(true);
     try {
-      // Extract just the letter answers (A, B, C, D)
-      const answers = selectedAnswers.map(ans => {
-        if (!ans) return '';
-        // Extract the first letter from the selected answer
-        const match = ans.match(/^([A-D])/);
-        return match ? match[1] : '';
-      });
+      // Prepare answers as array of full option texts (no letter prefix)
+      const answers = selectedAnswers.map(ans => ans ? ans.replace(/^[A-D]\.\s*/, '') : '');
       const res = await apiService.submitQuizAttempt(selectedQuiz.quiz_id, answers);
       setScore(res.data.score || 0);
       setShowResults(true);
