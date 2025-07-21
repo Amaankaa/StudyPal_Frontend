@@ -969,43 +969,6 @@ const GroupDetails: React.FC = () => {
                         )}
                       </div>
                       
-                      {quizSubmitted && quizScore && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <h4 className="font-medium text-blue-900">Quiz Results</h4>
-                              <p className="text-blue-800">
-                                Score: {quizScore.correct}/{quizScore.total} ({Math.round((quizScore.correct / quizScore.total) * 100)}%)
-                              </p>
-                            </div>
-                            <div className="text-2xl font-bold text-blue-600">
-                              {quizScore.correct}/{quizScore.total}
-                            </div>
-                          </div>
-                          {/* Correct Answers Summary */}
-                          <div className="border-t border-blue-200 pt-3">
-                            <h5 className="font-medium text-blue-900 mb-2">Correct Answers:</h5>
-                            <div className="space-y-1">
-                              {selectedResource.questions.map((question, index) => {
-                                const userAnswer = quizAnswers[index];
-                                const correctAnswerText = question.correct;
-                                const isCorrect = userAnswer === correctAnswerText;
-                                return (
-                                  <div key={index} className="flex items-center space-x-2 text-sm">
-                                    <span className="font-medium">Q{index + 1}:</span>
-                                    <span className={isCorrect ? "text-green-700" : "text-red-700"}>
-                                      {isCorrect ? "✓" : "✗"} Your answer: {userAnswer || <em>None</em>}
-                                    </span>
-                                    <span className="text-blue-700">
-                                      Correct: {correctAnswerText}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                       
                       <div className="space-y-4">
                         {selectedResource.questions.map((question, index) => (
