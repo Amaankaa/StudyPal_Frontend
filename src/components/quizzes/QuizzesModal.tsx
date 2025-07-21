@@ -218,10 +218,10 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                         {question.options.map((option: string, optionIdx: number) => {
                           const letter = String.fromCharCode(65 + optionIdx);
                           const displayOption = option.trim().startsWith(`${letter}.`) ? option : `${letter}. ${option}`;
-                          const selectedLetter = selectedAnswers[idx] ? selectedAnswers[idx].match(/^([A-D])/)?.[1] || '' : '';
-                          const correctLetter = question.correct ? question.correct.match(/^([A-D])/)?.[1] || '' : '';
-                          const isCorrect = correctLetter === letter;
-                          const isSelected = selectedLetter === letter;
+                          const selectedText = selectedAnswers[idx] ? selectedAnswers[idx].replace(/^[A-D]\.\s*/, '') : '';
+                          const correctText = question.correct;
+                          const isCorrect = option.replace(/^[A-D]\.\s*/, '') === correctText;
+                          const isSelected = selectedText === option.replace(/^[A-D]\.\s*/, '');
                           const isWrongSelection = isSelected && !isCorrect;
                           return (
                             <div key={optionIdx} className="flex items-center space-x-2">
