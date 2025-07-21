@@ -74,12 +74,16 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
     if (!selectedQuiz) return;
     setSubmitting(true);
     try {
-      // Prepare answers as array of letters (A, B, ...)
-      const answers = selectedAnswers.map(ans => ans ? ans.trim().charAt(0).toUpperCase() : '');
+      // Extract just the letter answers (A, B, C, D)
+      const answers = selectedAnswers.map(ans => {
+        if (!ans) return '';
+        // Extract the first letter from the selected answer
+        const match = ans.match(/^([A-D])/);
+        return match ? match[1] : '';
+      });
       const res = await apiService.submitQuizAttempt(selectedQuiz.quiz_id, answers);
       setScore(res.data.score || 0);
       setShowResults(true);
-      // Optionally: store result details if needed
     } catch (error) {
       toast.error('Failed to submit quiz.');
     } finally {
@@ -214,11 +218,10 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                         {question.options.map((option: string, optionIdx: number) => {
                           const letter = String.fromCharCode(65 + optionIdx);
                           const displayOption = option.trim().startsWith(`${letter}.`) ? option : `${letter}. ${option}`;
-                          const selectedLetter = selectedAnswers[idx] ? selectedAnswers[idx].trim().charAt(0).toUpperCase() : '';
-                          const correctLetter = question.correct ? question.correct.trim().charAt(0).toUpperCase() : '';
-                          const optionLetter = displayOption.trim().charAt(0).toUpperCase();
-                          const isCorrect = optionLetter === correctLetter;
-                          const isSelected = selectedLetter === optionLetter;
+                          const selectedLetter = selectedAnswers[idx] ? selectedAnswers[idx].match(/^([A-D])/)?.[1] || '' : '';
+                          const correctLetter = question.correct ? question.correct.match(/^([A-D])/)?.[1] || '' : '';
+                          const isCorrect = correctLetter === letter;
+                          const isSelected = selectedLetter === letter;
                           const isWrongSelection = isSelected && !isCorrect;
                           return (
                             <div key={optionIdx} className="flex items-center space-x-2">
@@ -229,7 +232,7 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                               ) : (
                                 <div className="w-4 h-4"></div>
                               )}
-                              <span className={`$ {
+                              <span className={`${
                                 isCorrect
                                   ? 'text-success-600 font-medium'
                                   : isWrongSelection
