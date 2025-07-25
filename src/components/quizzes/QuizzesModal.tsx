@@ -119,23 +119,25 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                     {selectedQuiz.questions[currentQuestionIndex]?.question}
                   </h4>
                   <div className="space-y-3">
-                    {selectedQuiz.questions[currentQuestionIndex]?.options.map((option: string, idx: number) => {
-                      const letter = String.fromCharCode(65 + idx); // A, B, C, D, ...
-                      const displayOption = option.trim().startsWith(`${letter}.`) ? option : `${letter}. ${option}`;
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => handleAnswerSelect(displayOption)}
-                          className={`w-full p-4 text-left rounded-lg border-2 transition-colors duration-200 ${
-                            selectedAnswers[currentQuestionIndex] === displayOption
-                              ? 'border-primary-500 bg-primary-50 text-primary-700'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <span className="font-medium">{displayOption}</span>
-                        </button>
-                      );
-                    })}
+                  {selectedQuiz.questions[currentQuestionIndex]?.options.map((option: string, idx: number) => {
+                    const letter = String.fromCharCode(65 + idx); // A, B, C, ...
+                    const displayOption = option.trim().startsWith(`${letter}.`) ? option : `${letter}. ${option}`;
+                    const isSelected = selectedAnswers[currentQuestionIndex] === letter;
+
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleAnswerSelect(displayOption)}
+                        className={`w-full p-4 text-left rounded-lg border-2 transition-colors duration-200 ${
+                          isSelected
+                            ? 'border-primary-500 bg-primary-50 text-primary-700'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <span className="font-medium">{displayOption}</span>
+                      </button>
+                    );
+                  })}
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
