@@ -78,6 +78,7 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
       // Prepare answers as array of full option texts (no letter prefix)
       const answers = selectedAnswers; // already just the letters
       const res = await apiService.submitQuizAttempt(selectedQuiz.quiz_id, answers);
+      console.log("Submitting answers:", answers);
       setScore(res.data.score || 0);
       setShowResults(true);
     } catch (error) {
