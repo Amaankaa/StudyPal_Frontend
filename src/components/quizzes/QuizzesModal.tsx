@@ -202,6 +202,7 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                           const isCorrect = letter === question.correct;
                           const isSelected = selectedAnswers[idx] === letter;
                           const isWrongSelection = isSelected && !isCorrect;
+                          console.log("Your Answer:", selectedAnswers[idx], "Correct:", question.correct);
 
                           return (
                             <div key={optionIdx} className="flex items-center space-x-2">
