@@ -127,7 +127,7 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                     return (
                       <button
                         key={idx}
-                        onClick={() => handleAnswerSelect(displayOption)}
+                        onClick={() => handleAnswerSelect(letter)}
                         className={`w-full p-4 text-left rounded-lg border-2 transition-colors duration-200 ${
                           isSelected
                             ? 'border-primary-500 bg-primary-50 text-primary-700'
