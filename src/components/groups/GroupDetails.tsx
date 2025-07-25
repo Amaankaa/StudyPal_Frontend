@@ -232,7 +232,7 @@ const GroupDetails: React.FC = () => {
       const orderedAnswers = selectedResource.questions.map((_, index) => quizAnswers[index] || "");
   
       const response = await apiService.submitQuizAttempt(selectedResource.quiz_id, orderedAnswers);
-      console.log(response.data)
+      console.log("Submitting orderedAnswers:", orderedAnswers);
       const { correct, score } = response.data;
   
       setQuizScore({ correct, total: selectedResource.questions.length });
