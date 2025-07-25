@@ -239,7 +239,7 @@ const GroupDetails: React.FC = () => {
       setQuizSubmitted(true);
   
       const percentage = Math.round(score);
-      toast.success(`Quiz completed! Score: ${correct}/${selectedResource.questions.length} (${percentage}%)`);
+      toast.success(`Quiz completed! Score: ${score}/${selectedResource.questions.length} (${percentage}%)`);
   
     } catch (error) {
       console.error('Quiz submission failed:', error);
@@ -987,11 +987,11 @@ const GroupDetails: React.FC = () => {
                                 const cleanOption = option.trim().replace(/^[A-D]\.\s*/, '');
                                 const displayOption = `${letter}. ${cleanOption}`;
 
-                                const selectedRaw = quizAnswers[index]; // raw string, like "React"
-                                const correctRaw = question.correct.trim().replace(/^[A-D]\.\s*/, '');
+                                const selectedLetter = quizAnswers[index]; // e.g., "B"
+                                const correctLetter = question.correct.trim().charAt(0);
 
-                                const isSelected = selectedRaw === cleanOption;
-                                const isCorrect = cleanOption === correctRaw;
+                                const isSelected = selectedLetter === letter;
+                                const isCorrect = correctLetter === letter;
                                 const showResults = quizSubmitted;
 
                                 let className = "p-3 rounded border cursor-pointer transition-colors";
