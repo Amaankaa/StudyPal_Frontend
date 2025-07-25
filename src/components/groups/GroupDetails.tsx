@@ -233,13 +233,13 @@ const GroupDetails: React.FC = () => {
   
       const response = await apiService.submitQuizAttempt(selectedResource.quiz_id, orderedAnswers);
       console.log(response.data)
-      const { score, result } = response.data;
+      const { correct, score } = response.data;
   
-      setQuizScore({ correct: result, total: selectedResource.questions.length });
+      setQuizScore({ correct, total: selectedResource.questions.length });
       setQuizSubmitted(true);
   
-      const percentage = Math.round((score / selectedResource.questions.length) * 100);
-      toast.success(`Quiz completed! Score: ${score}/${selectedResource.questions.length} (${percentage}%)`);
+      const percentage = Math.round(score);
+      toast.success(`Quiz completed! Score: ${correct}/${selectedResource.questions.length} (${percentage}%)`);
   
     } catch (error) {
       console.error('Quiz submission failed:', error);

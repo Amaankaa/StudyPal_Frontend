@@ -423,7 +423,7 @@ class ApiService {
   }
 
   // Quiz Attempt Methods
-  async submitQuizAttempt(quizId: number, answers: string[]): Promise<AxiosResponse<{ score: number; result: any }>> {
+  async submitQuizAttempt(quizId: number, answers: string[]): Promise<AxiosResponse<{ score: number; correct: any, result: any }>> {
     return this.api.post('/quiz_attempts/', {
       quiz: quizId,
       answers: answers,
