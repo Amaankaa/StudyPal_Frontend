@@ -239,7 +239,7 @@ const GroupDetails: React.FC = () => {
       setQuizSubmitted(true);
   
       const percentage = Math.round(score);
-      toast.success(`Quiz completed! Score: ${score}/${selectedResource.questions.length} (${percentage}%)`);
+      toast.success(`Quiz completed! Score: ${correct}/${selectedResource.questions.length} (${percentage}%)`);
   
     } catch (error) {
       console.error('Quiz submission failed:', error);
