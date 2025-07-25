@@ -198,22 +198,30 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                         {question.options.map((option: string, optionIdx: number) => {
                           const letter = String.fromCharCode(65 + optionIdx);
                           const displayOption = option.trim().startsWith(`${letter}.`) ? option : `${letter}. ${option}`;
-                          
-                          // Clean up current option
+
+                          // Cleaned option text for comparison
                           const optionText = option.trim().replace(/^[A-D]\.\s*/, '');
 
-                          // Normalize backend correct value
-                          const correctRaw = question.correct?.trim().replace(/^[A-D]\.\s*/, '');
+                          const rawCorrect = question.correct?.trim();
+                          const cleanCorrectText = rawCorrect?.replace(/^[A-D]\.\s*/, '') || "";
 
-                          // Match based on actual text content
-                          const isCorrect = optionText === correctRaw;
+                          const selectedRaw = selectedAnswers[idx]; // e.g., "A" or "The waiter"
 
-                          // Match selected letter
-                          const isSelected = selectedAnswers[idx] === letter;
+                          let isCorrect = false;
+                          let isSelected = false;
 
-                          // Wrong selection if selected but not correct
+                          // If selected answer is a letter and correct answer is full text → compare text
+                          if (selectedRaw?.length === 1 && rawCorrect?.length > 1) {
+                            const selectedIdx = selectedRaw.charCodeAt(0) - 65;
+                            isCorrect = optionText === cleanCorrectText;
+                            isSelected = optionIdx === selectedIdx;
+                          } else {
+                            // Compare directly
+                            isCorrect = optionText === cleanCorrectText || selectedRaw === letter;
+                            isSelected = selectedRaw === letter || selectedRaw === optionText;
+                          }
+
                           const isWrongSelection = isSelected && !isCorrect;
-
 
                           return (
                             <div key={optionIdx} className="flex items-center space-x-2">
