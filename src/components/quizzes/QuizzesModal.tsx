@@ -53,10 +53,11 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
   };
 
   const handleAnswerSelect = (answer: string) => {
+    const letter = answer.split('.')[0].trim(); // Extract just "A", "B", etc.
     const newAnswers = [...selectedAnswers];
-    newAnswers[currentQuestionIndex] = answer;
+    newAnswers[currentQuestionIndex] = letter;
     setSelectedAnswers(newAnswers);
-  };
+  };  
 
   const nextQuestion = () => {
     if (currentQuestionIndex < (selectedQuiz?.questions.length || 0) - 1) {
@@ -75,7 +76,7 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
     setSubmitting(true);
     try {
       // Prepare answers as array of full option texts (no letter prefix)
-      const answers = selectedAnswers.map(ans => ans ? ans.replace(/^[A-D]\.\s*/, '') : '');
+      const answers = selectedAnswers; // already just the letters
       const res = await apiService.submitQuizAttempt(selectedQuiz.quiz_id, answers);
       setScore(res.data.score || 0);
       setShowResults(true);
@@ -83,24 +84,6 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
       toast.error('Failed to submit quiz.');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleDeleteQuiz = async (quizId: number) => {
-    if (!window.confirm('Are you sure you want to delete this quiz?')) return;
-    try {
-      await apiService.deleteQuiz(quizId);
-      toast.success('Quiz deleted successfully');
-      // Refetch quizzes
-      const res = await apiService.getQuizzesForNote(noteId);
-      const quizzes = res.data.quizzes || [];
-      setQuizzes(quizzes);
-      // Notify parent and wait for it to finish
-      if (onQuizzesChanged) await onQuizzesChanged();
-      // If no quizzes left, close the modal
-      if (selectedQuiz && selectedQuiz.quiz_id === quizId) exitQuiz();
-    } catch (error) {
-      toast.error('Failed to delete quiz');
     }
   };
 
@@ -213,11 +196,11 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                         {question.options.map((option: string, optionIdx: number) => {
                           const letter = String.fromCharCode(65 + optionIdx);
                           const displayOption = option.trim().startsWith(`${letter}.`) ? option : `${letter}. ${option}`;
-                          const selectedText = selectedAnswers[idx] ? selectedAnswers[idx].replace(/^[A-D]\.\s*/, '') : '';
-                          const correctText = question.correct;
-                          const isCorrect = option.replace(/^[A-D]\.\s*/, '') === correctText;
-                          const isSelected = selectedText === option.replace(/^[A-D]\.\s*/, '');
+                          
+                          const isCorrect = letter === question.correct;
+                          const isSelected = selectedAnswers[idx] === letter;
                           const isWrongSelection = isSelected && !isCorrect;
+
                           return (
                             <div key={optionIdx} className="flex items-center space-x-2">
                               {isCorrect ? (
@@ -225,15 +208,15 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                               ) : isWrongSelection ? (
                                 <XCircle size={16} className="text-danger-600" />
                               ) : (
-                                <div className="w-4 h-4"></div>
+                                <div className="w-4 h-4" />
                               )}
-                              <span className={`${
-                                isCorrect
-                                  ? 'text-success-600 font-medium'
-                                  : isWrongSelection
-                                  ? 'text-danger-600 line-through'
-                                  : 'text-gray-600'
-                              }`}>
+                              <span
+                                className={`
+                                  ${isCorrect ? 'text-success-600 font-medium' : ''}
+                                  ${isWrongSelection ? 'text-danger-600 line-through' : ''}
+                                  ${!isCorrect && !isWrongSelection ? 'text-gray-600' : ''}
+                                `}
+                              >
                                 {displayOption}
                               </span>
                             </div>
