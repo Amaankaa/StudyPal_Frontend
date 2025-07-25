@@ -232,9 +232,10 @@ const GroupDetails: React.FC = () => {
       const orderedAnswers = selectedResource.questions.map((_, index) => quizAnswers[index] || "");
   
       const response = await apiService.submitQuizAttempt(selectedResource.quiz_id, orderedAnswers);
-      const { score } = response.data;
+      console.log(response.data)
+      const { score, result } = response.data;
   
-      setQuizScore({ correct: score, total: selectedResource.questions.length });
+      setQuizScore({ correct: result, total: selectedResource.questions.length });
       setQuizSubmitted(true);
   
       const percentage = Math.round((score / selectedResource.questions.length) * 100);
