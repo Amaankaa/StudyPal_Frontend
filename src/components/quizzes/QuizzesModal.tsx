@@ -199,10 +199,21 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
                           const letter = String.fromCharCode(65 + optionIdx);
                           const displayOption = option.trim().startsWith(`${letter}.`) ? option : `${letter}. ${option}`;
                           
-                          const isCorrect = letter === question.correct;
+                          // Clean up current option
+                          const optionText = option.trim().replace(/^[A-D]\.\s*/, '');
+
+                          // Normalize backend correct value
+                          const correctRaw = question.correct?.trim().replace(/^[A-D]\.\s*/, '');
+
+                          // Match based on actual text content
+                          const isCorrect = optionText === correctRaw;
+
+                          // Match selected letter
                           const isSelected = selectedAnswers[idx] === letter;
+
+                          // Wrong selection if selected but not correct
                           const isWrongSelection = isSelected && !isCorrect;
-                          console.log("Your Answer:", selectedAnswers[idx], "Correct:", question.correct);
+
 
                           return (
                             <div key={optionIdx} className="flex items-center space-x-2">
