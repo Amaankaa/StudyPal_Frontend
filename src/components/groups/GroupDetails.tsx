@@ -968,8 +968,7 @@ const GroupDetails: React.FC = () => {
                           </button>
                         )}
                       </div>
-                      
-                      
+
                       <div className="space-y-4">
                         {selectedResource.questions.map((question, index) => (
                           <div key={index} className="bg-gray-50 rounded-lg p-4">
@@ -978,14 +977,23 @@ const GroupDetails: React.FC = () => {
                             </h4>
                             <div className="space-y-2">
                               {question.options.map((option, optionIndex) => {
-                                const isSelected = quizAnswers[index] === option;
-                                const isCorrectAnswer = option === question.correct;
+                                const letter = String.fromCharCode(65 + optionIndex); // A, B, C, D...
+                                const cleanOption = option.trim().replace(/^[A-D]\.\s*/, '');
+                                const displayOption = `${letter}. ${cleanOption}`;
+
+                                const selectedRaw = quizAnswers[index]; // raw string, like "React"
+                                const correctRaw = question.correct.trim().replace(/^[A-D]\.\s*/, '');
+
+                                const isSelected = selectedRaw === cleanOption;
+                                const isCorrect = cleanOption === correctRaw;
                                 const showResults = quizSubmitted;
+
                                 let className = "p-3 rounded border cursor-pointer transition-colors";
+
                                 if (showResults) {
-                                  if (isCorrectAnswer) {
+                                  if (isCorrect) {
                                     className += " bg-green-100 border-green-300 text-green-800";
-                                  } else if (isSelected && !isCorrectAnswer) {
+                                  } else if (isSelected && !isCorrect) {
                                     className += " bg-red-100 border-red-300 text-red-800";
                                   } else {
                                     className += " bg-gray-100 border-gray-300 text-gray-700";
@@ -997,18 +1005,18 @@ const GroupDetails: React.FC = () => {
                                     className += " bg-white border-gray-300 text-gray-700 hover:bg-gray-50";
                                   }
                                 }
-                                const rawOption = option.replace(/^[A-D]\.\s*/, '');
+
                                 return (
                                   <div
                                     key={optionIndex}
                                     className={className}
-                                    onClick={() => !quizSubmitted && handleQuizAnswer(index, rawOption)}
+                                    onClick={() => !quizSubmitted && handleQuizAnswer(index, cleanOption)}
                                   >
                                     <div className="flex items-center justify-between">
-                                      <span>{String.fromCharCode(65 + optionIndex)}. {option}</span>
+                                      <span>{displayOption}</span>
                                       {showResults && (
                                         <span className="text-sm font-medium">
-                                          {isCorrectAnswer ? "✓ Correct Answer" : isSelected ? "✗ Your Answer" : ""}
+                                          {isCorrect ? "✓ Correct Answer" : isSelected ? "✗ Your Answer" : ""}
                                         </span>
                                       )}
                                     </div>
@@ -1019,7 +1027,7 @@ const GroupDetails: React.FC = () => {
                           </div>
                         ))}
                       </div>
-                      
+
                       {!quizSubmitted && (
                         <div className="mt-6">
                           <button
