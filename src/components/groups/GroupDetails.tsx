@@ -1015,7 +1015,7 @@ const GroupDetails: React.FC = () => {
                                   <div
                                     key={optionIndex}
                                     className={className}
-                                    onClick={() => !quizSubmitted && handleQuizAnswer(index, cleanOption)}
+                                    onClick={() => !quizSubmitted && handleQuizAnswer(index, letter)}
                                   >
                                     <div className="flex items-center justify-between">
                                       <span>{displayOption}</span>
