@@ -14,7 +14,6 @@ import {
   User, 
   Info,
   X,
-  ChevronDown,
   Plus,
   FileText,
   BookOpen,
@@ -225,22 +224,28 @@ const GroupDetails: React.FC = () => {
     }));
   };
 
-  const submitQuiz = () => {
-    if (!selectedResource?.questions) return;
-    let correct = 0;
-    const total = selectedResource.questions.length;
-    selectedResource.questions.forEach((question, index) => {
-      const userAnswer = quizAnswers[index];
-      const correctAnswerText = question.correct;
-      if (userAnswer === correctAnswerText) {
-        correct++;
-      }
-    });
-    setQuizScore({ correct, total });
-    setQuizSubmitted(true);
-    const percentage = Math.round((correct / total) * 100);
-    toast.success(`Quiz completed! Score: ${correct}/${total} (${percentage}%)`);
+  const submitQuiz = async () => {
+    if (!selectedResource?.questions || !selectedResource.quiz_id) return;
+  
+    try {
+      // Convert object to ordered array of answers
+      const orderedAnswers = selectedResource.questions.map((_, index) => quizAnswers[index] || "");
+  
+      const response = await apiService.submitQuizAttempt(selectedResource.quiz_id, orderedAnswers);
+      const { score } = response.data;
+  
+      setQuizScore({ correct: score, total: selectedResource.questions.length });
+      setQuizSubmitted(true);
+  
+      const percentage = Math.round((score / selectedResource.questions.length) * 100);
+      toast.success(`Quiz completed! Score: ${score}/${selectedResource.questions.length} (${percentage}%)`);
+  
+    } catch (error) {
+      console.error('Quiz submission failed:', error);
+      toast.error('Failed to submit quiz. Please try again.');
+    }
   };
+  
 
   const resetQuiz = () => {
     setQuizAnswers({});
