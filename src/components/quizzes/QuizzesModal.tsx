@@ -53,7 +53,7 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
   };
 
   const handleAnswerSelect = (answer: string) => {
-    const letter = answer.split('.')[0].trim(); // Extract just "A", "B", etc.
+    const letter = answer // Extract just "A", "B", etc.
     const newAnswers = [...selectedAnswers];
     newAnswers[currentQuestionIndex] = letter;
     setSelectedAnswers(newAnswers);
