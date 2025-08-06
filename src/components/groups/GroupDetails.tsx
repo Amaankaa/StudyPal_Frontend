@@ -154,7 +154,6 @@ const GroupDetails: React.FC = () => {
       setGroup(groupRes.data);
       setMembers(membersRes.data);
     } catch (error: any) {
-      console.error('Error fetching group details:', error);
       const message = error.response?.data?.detail || 'Failed to load group details';
       toast.error(message);
       navigate('/groups');
@@ -166,10 +165,8 @@ const GroupDetails: React.FC = () => {
   const fetchResources = async () => {
     try {
       const response = await apiService.getGroupResources(parseInt(groupId!));
-      console.log('Group resources response:', response.data);
       setResources(response.data);
     } catch (error: any) {
-      console.error('Error fetching resources:', error);
       toast.error('Failed to load shared resources');
     }
   };
@@ -210,7 +207,6 @@ const GroupDetails: React.FC = () => {
       setQuizSubmitted(false);
       setQuizScore(null);
     } catch (error: any) {
-      console.error('Error fetching resource content:', error);
       toast.error('Failed to load resource content');
     } finally {
       setLoadingResource(false);
@@ -232,12 +228,6 @@ const GroupDetails: React.FC = () => {
       const orderedAnswers = selectedResource.questions.map((_, index) => quizAnswers[index] || "");
 
       const response = await apiService.submitQuizAttempt(selectedResource.quiz_id, orderedAnswers);
-      console.log("Submitting orderedAnswers:", orderedAnswers);
-      console.log("Quiz questions for debugging:", selectedResource.questions.map(q => ({
-        question: q.question,
-        correct: q.correct,
-        options: q.options
-      })));
       const { correct, score } = response.data;
 
       setQuizScore({ correct, total: selectedResource.questions.length });
@@ -247,7 +237,6 @@ const GroupDetails: React.FC = () => {
       toast.success(`Quiz completed! Score: ${correct}/${selectedResource.questions.length} (${percentage}%)`);
 
     } catch (error) {
-      console.error('Quiz submission failed:', error);
       toast.error('Failed to submit quiz. Please try again.');
     }
   };
@@ -264,7 +253,6 @@ const GroupDetails: React.FC = () => {
       const response = await apiService.getGroupChat(parseInt(groupId!));
       setMessages(response.data);
     } catch (error: any) {
-      console.error('Error fetching messages:', error);
       if (error.response?.status === 403) {
         toast.error('You must be a member to view group chat');
       }
@@ -623,7 +611,6 @@ const GroupDetails: React.FC = () => {
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              console.log('Attempting to delete resource:', resource);
                               if (!window.confirm('Are you sure you want to remove this resource from the group?')) return;
                               try {
                                 await apiService.deleteGroupResource(resource.id);
@@ -858,9 +845,21 @@ const GroupDetails: React.FC = () => {
                         {shareForm.type === 'note' && userNotes.map(note => (
                           <option key={note.id} value={note.id}>{note.title}</option>
                         ))}
-                        {shareForm.type === 'quiz' && userQuizzes.map(quiz => (
-                          <option key={quiz.id} value={quiz.id}>{quiz.note_title ? `${quiz.note_title} (Quiz)` : `Quiz #${quiz.id}`}</option>
-                        ))}
+                        {shareForm.type === 'quiz' && userQuizzes.map(quiz => {
+                          const createdDate = new Date(quiz.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                          const displayText = quiz.note_title
+                            ? `${quiz.note_title} - Quiz (${createdDate})`
+                            : `Quiz #${quiz.id} (${createdDate})`;
+                          return (
+                            <option key={quiz.id} value={quiz.id}>{displayText}</option>
+                          );
+                        })}
                         {shareForm.type === 'flashcard' && userFlashcards.map(fc => (
                           <option key={fc.id} value={fc.id}>{fc.question}</option>
                         ))}
