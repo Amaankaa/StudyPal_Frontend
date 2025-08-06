@@ -226,21 +226,26 @@ const GroupDetails: React.FC = () => {
 
   const submitQuiz = async () => {
     if (!selectedResource?.questions || !selectedResource.quiz_id) return;
-  
+
     try {
       // Convert object to ordered array of answers
       const orderedAnswers = selectedResource.questions.map((_, index) => quizAnswers[index] || "");
-  
+
       const response = await apiService.submitQuizAttempt(selectedResource.quiz_id, orderedAnswers);
       console.log("Submitting orderedAnswers:", orderedAnswers);
+      console.log("Quiz questions for debugging:", selectedResource.questions.map(q => ({
+        question: q.question,
+        correct: q.correct,
+        options: q.options
+      })));
       const { correct, score } = response.data;
-  
+
       setQuizScore({ correct, total: selectedResource.questions.length });
       setQuizSubmitted(true);
-  
+
       const percentage = Math.round(score);
       toast.success(`Quiz completed! Score: ${correct}/${selectedResource.questions.length} (${percentage}%)`);
-  
+
     } catch (error) {
       console.error('Quiz submission failed:', error);
       toast.error('Failed to submit quiz. Please try again.');
@@ -988,11 +993,37 @@ const GroupDetails: React.FC = () => {
                                 const displayOption = `${letter}. ${cleanOption}`;
 
                                 const selectedLetter = quizAnswers[index]; // e.g., "B"
-                                const correctLetter = question.correct.trim().charAt(0);
+
+                                // Handle different formats of correct answer
+                                const rawCorrect = question.correct?.trim();
+                                const cleanCorrectText = rawCorrect?.replace(/^[A-D]\.\s*/, '') || "";
+
+                                // Determine if this option is correct
+                                let isCorrect = false;
+                                if (rawCorrect?.length === 1) {
+                                  // If correct answer is just a letter (e.g., "A")
+                                  isCorrect = rawCorrect === letter;
+                                } else {
+                                  // If correct answer is full text, compare the cleaned text
+                                  isCorrect = cleanOption === cleanCorrectText;
+                                }
 
                                 const isSelected = selectedLetter === letter;
-                                const isCorrect = correctLetter === letter;
                                 const showResults = quizSubmitted;
+
+                                // Debug logging for the first question only to avoid spam
+                                if (index === 0 && optionIndex === 0 && showResults) {
+                                  console.log("Quiz answer debugging:", {
+                                    questionIndex: index,
+                                    optionIndex,
+                                    letter,
+                                    cleanOption,
+                                    rawCorrect,
+                                    cleanCorrectText,
+                                    isCorrect,
+                                    selectedLetter
+                                  });
+                                }
 
                                 let className = "p-3 rounded border cursor-pointer transition-colors";
 
