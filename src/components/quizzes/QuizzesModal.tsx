@@ -77,8 +77,25 @@ const QuizzesModal: React.FC<QuizzesModalProps> = ({ noteId, onClose, onQuizzesC
     try {
       // Prepare answers as array of full option texts (no letter prefix)
       const answers = selectedAnswers; // already just the letters
+
+      // Debug: Log what we're sending vs what the quiz expects
+      console.log('Submitting answers:', answers);
+      console.log('Quiz questions and correct answers:', selectedQuiz.questions.map((q: any, i: number) => ({
+        question: q.question,
+        options: q.options,
+        correct: q.correct,
+        ourAnswer: answers[i]
+      })));
+
       const res = await apiService.submitQuizAttempt(selectedQuiz.quiz_id, answers);
-      setScore(res.data.score || 0);
+
+      // Debug: Log the response to understand the structure
+      console.log('Quiz submission response:', res.data);
+
+      // Convert score to percentage if it's a decimal, otherwise use as-is
+      const scoreValue = res.data.score || 0;
+      const percentageScore = scoreValue <= 1 ? Math.round(scoreValue * 100) : Math.round(scoreValue);
+      setScore(percentageScore);
       setShowResults(true);
     } catch (error) {
       toast.error('Failed to submit quiz.');
