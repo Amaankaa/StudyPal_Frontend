@@ -1011,20 +1011,6 @@ const GroupDetails: React.FC = () => {
                                 const isSelected = selectedLetter === letter;
                                 const showResults = quizSubmitted;
 
-                                // Debug logging for the first question only to avoid spam
-                                if (index === 0 && optionIndex === 0 && showResults) {
-                                  console.log("Quiz answer debugging:", {
-                                    questionIndex: index,
-                                    optionIndex,
-                                    letter,
-                                    cleanOption,
-                                    rawCorrect,
-                                    cleanCorrectText,
-                                    isCorrect,
-                                    selectedLetter
-                                  });
-                                }
-
                                 let className = "p-3 rounded border cursor-pointer transition-colors";
 
                                 if (showResults) {
