@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Eye, EyeOff, BookOpen, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, BookOpen, Mail, Lock, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
@@ -51,6 +51,13 @@ const Login: React.FC = () => {
         </div>
 
         <div className="bg-white py-8 px-6 shadow-xl rounded-xl border border-gray-200">
+          {/* Cold start notice for Render free tier */}
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
+            <Clock size={16} className="mt-0.5 flex-shrink-0 text-amber-600" />
+            <p className="text-xs leading-relaxed">
+              Notice: After 30 minutes of inactivity, the first request may take up to 50 seconds to respond while the backend wakes up (Render free tier).
+            </p>
+          </div>
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
